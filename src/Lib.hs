@@ -7,6 +7,8 @@ module Lib
     ( startApp
     ) where
 
+import System.IO
+import Prelude hiding (log)
 import Data.Aeson
 import Data.Aeson.TH
 import Network.Wai
@@ -63,26 +65,39 @@ data Shipment = Shipment
  , name :: String
  } deriving (Eq, Show, Generic)
 
+log s = do
+    hPutStrLn stderr s
+
 dropIdOnly :: String -> String
 dropIdOnly label = case label of
                      x : "id" -> "id"
                      _        -> label
 
 instance ToJSON Order where toJSON = genericToJSON defaultOptions { fieldLabelModifier = dropIdOnly }
+instance FromJSON Order
 instance ToJSON Customer where toJSON = genericToJSON defaultOptions { fieldLabelModifier = dropIdOnly }
+instance FromJSON Customer
 instance ToJSON Card where toJSON = genericToJSON defaultOptions { fieldLabelModifier = dropIdOnly }
+instance FromJSON Card
 instance ToJSON Address where toJSON = genericToJSON defaultOptions { fieldLabelModifier = dropIdOnly }
+instance FromJSON Address
 instance ToJSON Item where toJSON = genericToJSON defaultOptions { fieldLabelModifier = dropIdOnly }
+instance FromJSON Item 
 instance ToJSON Shipment where toJSON = genericToJSON defaultOptions { fieldLabelModifier = dropIdOnly }
+instance FromJSON Shipment
 
 type API = "orders" :> Get '[JSON] Order
       :<|> "orders" :> ReqBody '[JSON] Order :> Post '[JSON] String
 
 startApp :: IO ()
-startApp = run 8080 app
+startApp = do
+    log "Starting..."
+    run 8080 app
 
-app :: Application
-app = serve api server
+app :: Application    
+app request responder = do
+    log (show request)
+    serve api server request responder
 
 api :: Proxy API
 api = Proxy
