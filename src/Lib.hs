@@ -16,6 +16,7 @@ import Network.Wai.Handler.Warp
 import Servant
 import Data.Time.Calendar
 import GHC.Generics
+import Control.Monad.IO.Class
 
 data Order = Order 
   { oid:: String
@@ -87,7 +88,7 @@ instance ToJSON Shipment where toJSON = genericToJSON defaultOptions { fieldLabe
 instance FromJSON Shipment
 
 type API = "orders" :> Get '[JSON] Order
-      :<|> "orders" :> ReqBody '[JSON] Order :> Post '[JSON] String
+      :<|> "sendorder" :> ReqBody '[JSON] Order :> Post '[JSON] String
 
 startApp :: IO ()
 startApp = do
@@ -104,13 +105,15 @@ api = Proxy
 
 server :: Server API
 server = order
-        :<|> getOrder
+        :<|> sendorder
 
    where order :: Handler Order
          order = return (Order "id" "cusomerid" customer_ address_ card_ [item_] shipment_ (fromGregorian 2015 12 1) 18.90)
 
-         getOrder :: Order -> Handler String
-         getOrder order = return "Received Order"
+         sendorder :: Order -> Handler String
+         sendorder order = do
+                liftIO (log (show order)) 
+                return "Received Order"
 
 customer_ :: Customer
 customer_ = Customer "id" "firstName" "lastName" "userName" [address_] [card_]
@@ -126,3 +129,4 @@ item_ = Item "id" "itemId" 2 18.90
 
 shipment_ :: Shipment
 shipment_ = Shipment "id" "name"
+
